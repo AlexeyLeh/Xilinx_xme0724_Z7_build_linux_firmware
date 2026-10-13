@@ -1,40 +1,40 @@
-# Порядок использования загрузочных файлов
+# Boot file usage instructions
 
 ## BOOT/tftp/
-Папку BOOT/tftp/ скопировать на tftp-сервер (типовая папка там - /srv/tftp)
+Copy the `BOOT/tftp/` folder to the TFTP server (the standard directory is usually `/srv/tftp`).
 
 ## BOOT/qspi/
-Файлы BOOT/qspi/* прошить в QSPI flash устройства
+Flash the `BOOT/qspi/*` files to the device's QSPI flash memory.
 
-- инструкцию по прошивке смотри в разделе [Прошивка](../../README - ru.md/#прошивка)
-    - для прошивки перемычки ставить в положение o--- 1
-                                                 o--- 2
+- Refer to the [Flashing](../../README.md/#flashing) section for flashing instructions.
+- For flashing, set the jumpers to position: `o--- 1`
+`o--- 2`
 
-    - для загрузки перемычки ставить в положение o--- 1
-                                                 ---o 2
+- For booting, set the jumpers to position: `o--- 1`
+`---o 2`
+
 ## BOOT/sd
-Файлы BOOT/sd/* скопировать SD-карту
-    - для загрузки перемычки ставить в положение ---o 1
-                                                 ---o 2
+Copy the `BOOT/sd/*` files to the SD card.
+- For booting, set the jumpers to position: `---o 1`
+`---o 2`
 
-### Первичная загрузка
-При первичной загрузке с qspi-flash необходимо наличие tftp-сервера (с файлами из BOOT/tftp).   
-Форматирование и заполнение mmc выполняется в автоматическом режиме.
+### Initial boot
+When booting from QSPI flash for the first time, a TFTP server (containing the files from `BOOT/tftp`) is required.
+Formatting and populating the MMC occurs automatically.
 
-В дальнейшем загрузка поизводиться из boot-раздела(bootable) на mmc 1 (/mnt/uboot)
+Subsequent boots will take place from the bootable partition on MMC 1 (`/mnt/uboot`).
 
-Для замены загрузочных файлов на mmc необходимо выполнить следующие операции (на запущенной системе):
+To replace the boot files on the MMC, perform the following operations (on a running system):
 ```
 $ mount /mnt/uboot
 $ rm /mnt/uboot/*
 $ reboot
 ```
-При отсутсвии файлов на boot-разделе снова будет выполнена автоматическая процедура по заполнению mmc.
+If the boot partition is empty, the automatic MMC population procedure will run again.
 
-Примечание:  
-На данный момент адрес tftp-сервера прошит в исходниках в файлах
+Note:
+Currently, the TFTP server address is hardcoded in the source files:
 ```
 boot.script.tftp
 boot.script.qspi
 ```
-
