@@ -2,7 +2,7 @@
 
 The project is designed to be built on Windows using the WSL2 subsystem.
 *(WSL version 1 is not suitable, as it does not support /dev/loop)*
-For WSL activation and additional configuration, see [Installing WSL](#installing-wsl) below.
+For WSL activation and additional configuration, see [WSL Installation](#wsl-installation) below.
 
 The build process is optimized for Linux and adapted for WSL2.
 
@@ -51,7 +51,7 @@ See the [Flashing](#flashing) section.
 
 Scripts from the `boot` folder are used for flashing.
 
-Details in [boot/README.md](./boot/README.md)
+Details in [lnx/boot/README.md](lnx/boot/README.md)
 
 In brief – startup procedure:
 Windows:
