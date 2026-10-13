@@ -1,0 +1,15 @@
+*.o
+*.d
+*.obj
+*.log
+*-bak-*
+
+lnx/boot_scripts/xme0724-20
+lnx/boot_scripts/xme072420
+lnx/device_tree/device_tree_bsp
+lnx/device_tree/system.dtb
+lnx/linux/uImage.bin
+vivado-files/artifacts
+
+lnx/rootfs/creation/rootfs
+BOOT/xme072420-20*-*.zip

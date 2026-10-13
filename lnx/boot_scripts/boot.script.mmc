@@ -1,0 +1,96 @@
+# boot.scr.mmc
+
+echo ""
+echo "------ boot.scr.mmc started"
+
+if test -n $serverip; then serverip=192.168.1.32; fi
+
+setenv bootargs "console=ttyPS0,115200n8 earlycon root=/dev/ram0 rootwait rw tftp_host=$serverip"
+
+setenv vars ethaddr serverip netmask bootargs scriptaddr kernel_addr_r ramdisk_addr_r fdt_addr_r
+for var in ${vars}; do 
+    if env exists ${var}; then 
+        print ${var}; 
+    else 
+        echo "${var}: ---" ; 
+    fi; 
+done
+echo ""
+
+setenv mmc_num 1
+setenv script_name "/boot.scr.mmc.bin"
+
+echo "--- Check mmc ${mmc_num} exists "
+setenv cmd "mmc dev ${mmc_num}"
+echo "> ${cmd}"
+run cmd
+if test $? -ne 0; then
+    echo "NOT FOUND"
+else
+    echo ""
+    echo "--- Check bootable partitions on mmc ${mmc_num}"
+    setenv bootpartitions
+    setenv cmd "part list mmc ${mmc_num} -bootable bootpartitions"
+    echo "> ${cmd}"
+    run cmd
+    if test ! -z "${bootpartitions}"; then
+        echo "found: ${bootpartitions}"
+    else
+        echo "NO LIST"
+        setenv bootpartitions 1
+        echo "--- Try to use partition #${bootpartitions} "
+    fi
+    for part in ${bootpartitions}; do 
+        setenv partition ${mmc_num}:${part}
+
+        echo ""
+        echo "--- Check partition exists on mmc ${partition}"
+        setenv cmd "fstype mmc ${partition} bootfstype"
+        echo "> ${cmd}"
+        run cmd
+        if test -z "${bootfstype}"; then
+            echo "--- NOT FOUND"
+        else
+            echo "${bootfstype} ... OK"
+
+            echo ""
+            echo "--- Check \"${script_name}\" exists ... "
+            setenv cmd "test -e mmc ${partition} ${script_name}"
+            echo "> ${cmd}"
+            run cmd
+            if test $? -ne 0; then
+                echo "--- NOT FOUND"
+            else
+                echo "OK"
+
+                echo ""
+                echo "--- Loading boot files"
+                setenv cmd "load mmc ${partition} ${kernel_addr_r}  uImage.bin"
+                echo "> ${cmd}"
+                run cmd
+
+                echo ""
+                setenv cmd "load mmc ${partition} ${ramdisk_addr_r} uRootfs.image.gz"
+                echo "> ${cmd}"
+                run cmd
+
+                echo ""
+                setenv cmd "load mmc ${partition} ${fdt_addr_r} system.dtb"
+                echo "> ${cmd}"
+                run cmd
+
+                echo ""
+                setenv cmd "bootm ${kernel_addr_r} ${ramdisk_addr_r} ${fdt_addr_r}"
+                echo "> ${cmd}"
+                run cmd
+            fi
+        fi
+    done
+fi
+
+echo ""
+echo "*** ERROR: something wrong with MMC"
+echo ""
+
+echo "------ boot.scr.mmc finished"
+echo ""

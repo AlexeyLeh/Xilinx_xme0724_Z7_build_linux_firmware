@@ -1,0 +1,27 @@
+# boot.scr.tftp
+
+echo ""
+echo "------ boot.scr.tftp started"
+
+if test -n $serverip; then serverip=192.168.1.32; fi
+
+setenv bootargs "console=ttyPS0,115200n8 earlycon root=/dev/ram0 rootwait rw debug tftp_host=$serverip"
+
+setenv vars ethaddr ipaddr serverip netmask bootargs scriptaddr kernel_addr_r ramdisk_addr_r fdt_addr_r
+for var in ${vars}; do
+    if env exists ${var}; then
+        print ${var};
+    else
+        echo "${var}: ---" ;
+    fi;
+done
+echo ""
+
+tftpboot ${kernel_addr_r}  xme0724-20/uImage.bin
+tftpboot ${ramdisk_addr_r} xme0724-20/uRootfs.image.gz
+tftpboot ${fdt_addr_r}     xme0724-20/system.dtb
+
+bootm ${kernel_addr_r} ${ramdisk_addr_r} ${fdt_addr_r}
+
+echo "++++++ boot.scr.tftp finished"
+echo ""

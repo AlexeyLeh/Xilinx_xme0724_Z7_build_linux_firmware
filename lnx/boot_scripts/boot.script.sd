@@ -1,0 +1,33 @@
+# boot.scr.sd
+
+echo ""
+echo "++++++ boot.scr.sd started"
+
+if test -n $serverip; then serverip=192.168.1.32; fi
+
+setenv bootargs "console=ttyPS0,115200n8 earlycon root=/dev/ram0 rootwait rw debug tftp_host=$serverip"
+
+setenv vars ethaddr scriptaddr kernel_addr_r ramdisk_addr_r fdt_addr_r bootargs
+for var in ${vars}; do 
+    if env exists ${var}; then 
+        print ${var}; 
+  else 
+        echo "${var}: ---" ; 
+fi; 
+done
+echo ''
+
+if test ! -e mmc 0 uImage.bin; then 
+    echo "========= SD0 not found ========="; 
+else 
+    echo "found SD0/uImage.bin";
+
+    fatload mmc 0 ${kernel_addr_r}  uImage.bin
+    fatload mmc 0 ${ramdisk_addr_r} uRootfs.image.gz
+    fatload mmc 0 ${fdt_addr_r}     system.dtb
+
+    bootm ${kernel_addr_r} ${ramdisk_addr_r} ${fdt_addr_r}
+fi
+
+echo "++++++ boot.scr.sd finished"
+echo ""

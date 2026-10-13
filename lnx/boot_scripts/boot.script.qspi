@@ -1,0 +1,125 @@
+# boot.scr.qspi
+
+echo ""
+echo "++++++ boot.scr.qspi started"
+
+setenv VARS "ethaddr ipaddr serverip netmask scriptaddr script_offset_f script_size_f bootargs"
+for var in ${VARS}; do 
+    if env exists ${var}; then 
+        print ${var}; 
+    else 
+        echo "${var}: ---" ; 
+    fi; 
+done
+echo ""
+
+mmc_num=1
+mmc_status=0    # no mmc
+
+echo "+++ Check mmc ${mmc_num} exists ... "
+setenv cmd "mmc dev ${mmc_num}"
+echo "> ${cmd}"
+run cmd
+if test $? -ne 0; then
+    mmc_status=0
+    echo "--- NOT FOUND"
+else
+    mmc_status=1    # mmc found
+    echo ""
+    echo "+++ Check bootable partitions on mmc ${mmc_num} ... "
+    setenv bootpart
+    setenv cmd "part list mmc ${mmc_num} -bootable bootpart"
+    echo "> ${cmd}"
+    run cmd
+    if test -z "${bootpart}"; then
+        echo "--- NOT FOUND"
+        mmc_status=2  # no boot partition
+    else
+        echo "+++ found: ${bootpart}"
+        for partition in ${bootpart}; do 
+            echo ""
+            echo "+++ Check formatted partition exists on mmc ${mmc_num}:${partition} ... "
+            setenv cmd "fstype mmc ${mmc_num}:${partition} bootfstype"
+            echo "> ${cmd}"
+            run cmd
+            if test -z "${bootfstype}"; then
+                echo "--- NOT FOUND"
+                mmc_status=3  # no formatted partition
+            else
+                echo "\"${bootfstype}\""
+
+                echo ""
+                echo "+++ Boot from mmc ${mmc_num} ... "
+                setenv script_name "/boot.scr.mmc.bin"
+                setenv cmd "test -e mmc ${mmc_num}:${partition} ${script_name}"
+                echo "> ${cmd}"
+                run cmd
+                if test $? -ne 0; then
+                    echo "*** U-Boot script ${script_name} NOT FOUND"
+                    mmc_status=4  # no boot script
+                else
+                    echo "Found U-Boot script ${script_name}"
+
+                    echo ""
+                    setenv cmd "load mmc ${mmc_num}:${partition} ${scriptaddr} ${script_name}"
+                    echo "> ${cmd}"
+                    run cmd
+
+                    echo ""
+                    setenv cmd "source ${scriptaddr}"
+                    echo "> ${cmd}"
+                    run cmd
+                fi
+
+            fi
+        done
+    fi
+fi
+
+# destroy this script to avoid using by another process
+cp 0x100 ${scriptaddr} 64  # just copy a trash...
+
+echo ""
+echo "*** "
+echo "*** ERROR: something wrong with MMC (status: ${mmc_status})"
+echo "*** "
+
+if test ${mmc_status} -eq 0 ; then  # no partitions
+    echo ""
+    echo "+++ Try format mmc on hardware level ..."
+    # setenv cmd "mmc hwpartition user enh 0 7634944 wrrel on check"
+    setenv cmd "mmc hwpartition user 0 15269888 wrrel on check"
+    echo "> ${cmd}"
+    run cmd
+    err=$?
+    if test ${err} -eq 0; then
+        reset   # restart SoC...
+    fi
+    echo "ERROR: ${err}"
+    exit 1
+fi
+
+echo ""
+echo "+++ Try load OS via network using TFTP protocol..."
+boot_script="xme0724-20/boot.scr.tftp.bin"
+setenv cmd "tftpboot ${loadaddr} ${boot_script}"
+echo "> ${cmd}"
+run cmd
+if test $? -eq 0; then
+    source ${loadaddr}
+else
+    echo "ERROR: check access to tftp server."
+    echo "       Make sure the permissions are correct for tftp folders"
+    echo "       (example: chmod 755 /srv/tftp/xme0724-20)"
+fi
+
+echo ""
+echo "*** "
+echo "*** ERROR: cant load OS due to unexpected configuration. Call Administratior..."
+echo "*** "
+echo ""
+
+echo "++++++ boot.scr.qspi finished"
+echo ""
+
+exit 1
